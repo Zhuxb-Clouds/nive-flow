@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted } from "vue";
 import { renderMarkdown, initHighlighter } from "@/utils/markdown";
 import type { MetaConfig } from "@/types";
+import GlobalNav from "@/components/GlobalNav.vue";
+import TableOfContents from "@/components/TableOfContents.vue";
+import { showNav, showToc } from "@/stores/sidebar";
 
 const props = defineProps<{
   meta: MetaConfig;
@@ -10,14 +13,12 @@ const props = defineProps<{
 const content = ref("");
 const loading = ref(true);
 
-const indexPath = computed(() => props.meta.indexPath || "README.md");
-
 onMounted(async () => {
   await initHighlighter();
 
   try {
-    // 尝试加载首页文档
-    const response = await fetch(`/docs/${indexPath.value}`);
+    const indexPath = props.meta.indexPath || "README.md";
+    const response = await fetch(`/docs/${indexPath}`);
     if (response.ok) {
       const markdown = await response.text();
       content.value = await renderMarkdown(markdown);
@@ -33,18 +34,37 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="home-view">
-    <div v-if="loading" class="loading">
-      <div class="spinner"></div>
-      <p>正在加载文档...</p>
-    </div>
+  <div class="doc-layout">
+    <div class="doc-content">
+      <GlobalNav v-if="showNav" />
 
-    <article v-else class="markdown-body" v-html="content"></article>
+      <div class="content-area">
+        <div v-if="loading" class="loading">
+          <div class="spinner"></div>
+          <p>正在加载文档...</p>
+        </div>
+
+        <article v-else class="markdown-body" v-html="content"></article>
+      </div>
+
+      <TableOfContents v-if="showToc" :content="content" />
+    </div>
   </div>
 </template>
 
 <style scoped>
-.home-view {
+.doc-layout {
+  min-height: calc(100vh - 70px);
+}
+
+.doc-content {
+  max-width: 75ch;
+  margin: 0 auto;
+  padding: 2rem;
+  position: relative;
+}
+
+.content-area {
   animation: fadeIn 0.3s ease-in;
 }
 
@@ -84,6 +104,13 @@ onMounted(async () => {
   }
   100% {
     transform: rotate(360deg);
+  }
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+  .doc-content {
+    padding: 1rem;
   }
 }
 </style>

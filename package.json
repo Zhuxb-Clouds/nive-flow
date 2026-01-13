@@ -7,7 +7,7 @@
     "nive-flow": "bin/nive-flow.js"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "tsx scripts/dev.ts",
     "build": "vue-tsc && vite build",
     "build:only": "vite build",
     "preview": "vite preview",

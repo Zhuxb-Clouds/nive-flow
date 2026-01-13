@@ -180,42 +180,41 @@ function getRepoDocsDir(repo: DocsRepo): string {
 }
 
 // 复制文档到构建目录
-function copyDocsToPublic(repos: DocsRepo[]) {
+// 复制文档到 public（每次构建只处理一个仓库）
+function copyDocsToPublic(repo: DocsRepo) {
   const docsTarget = path.resolve(__dirname, "../public/docs");
   fs.ensureDirSync(docsTarget);
   fs.emptyDirSync(docsTarget);
 
-  for (const repo of repos) {
-    const repoDir = getRepoDocsDir(repo);
-    // 始终按 name 分文件夹存放，支持多仓库
-    const targetDir = path.join(docsTarget, repo.name);
+  const repoDir = getRepoDocsDir(repo);
 
-    if (fs.existsSync(repoDir)) {
-      fs.ensureDirSync(targetDir);
-      fs.copySync(repoDir, targetDir, {
-        filter: (src) => !src.includes(".git"),
-      });
-      console.log(`[Docs] 已复制: ${repo.name} -> ${targetDir}`);
+  if (fs.existsSync(repoDir)) {
+    // 直接复制到 docs 根目录
+    fs.copySync(repoDir, docsTarget, {
+      filter: (src) => !src.includes(".git"),
+    });
+    console.log(`[Docs] 已复制: ${repo.name} -> ${docsTarget}`);
 
-      // 复制 meta.json 到各自目录
-      const metaPath = path.join(repoDir, "meta.json");
-      if (fs.existsSync(metaPath)) {
-        fs.copySync(metaPath, path.join(targetDir, "meta.json"));
-        console.log(`[Meta] 已复制 meta.json -> ${repo.name}/`);
-      }
+    // 复制 meta.json 到 public 根目录
+    const metaPath = path.join(repoDir, "meta.json");
+    const rootMetaPath = path.resolve(__dirname, "../public/meta.json");
+    if (fs.existsSync(metaPath)) {
+      fs.copySync(metaPath, rootMetaPath);
+      console.log(`[Meta] 已复制 meta.json 到 public/`);
     }
+  } else {
+    console.error(`[Error] 文档源不存在: ${repoDir}`);
   }
 }
 
-// 构建项目
-async function buildProject(repos: DocsRepo[]) {
-  // 获取输出路径
-  const globalOutputPath = process.env.OUTPUT_PATH || "./dist";
-  const absoluteOutputPath = path.isAbsolute(globalOutputPath)
-    ? globalOutputPath
-    : path.resolve(process.cwd(), globalOutputPath);
+// 构建单个仓库
+async function buildProject(repo: DocsRepo) {
+  const outputPath = repo.outputPath || `./dist/${repo.name}`;
+  const absoluteOutputPath = path.isAbsolute(outputPath)
+    ? outputPath
+    : path.resolve(process.cwd(), outputPath);
 
-  console.log("[Build] 正在构建项目...");
+  console.log(`[Build] 构建 ${repo.name} -> ${absoluteOutputPath}`);
 
   // 执行 Vite 构建
   execSync(`pnpm build:only --outDir "${absoluteOutputPath}"`, {
@@ -224,22 +223,7 @@ async function buildProject(repos: DocsRepo[]) {
     stdio: "inherit",
   });
 
-  console.log(`[Build] 构建完成！输出目录: ${absoluteOutputPath}`);
-
-  // 如果有多个仓库且各自配置了输出路径，复制到各自目录
-  if (repos.length > 1) {
-    for (const repo of repos) {
-      if (repo.outputPath) {
-        const repoOutputPath = path.isAbsolute(repo.outputPath)
-          ? repo.outputPath
-          : path.resolve(process.cwd(), repo.outputPath);
-
-        fs.ensureDirSync(repoOutputPath);
-        fs.copySync(absoluteOutputPath, repoOutputPath);
-        console.log(`[Build] 已复制到: ${repoOutputPath} (${repo.name})`);
-      }
-    }
-  }
+  console.log(`[Build] ${repo.name} 构建完成！`);
 }
 
 // 主同步和构建流程
@@ -253,26 +237,29 @@ async function syncAndBuild() {
   try {
     // 同步所有仓库
     console.log(`\n[Sync] 开始同步 ${repos.length} 个文档仓库...`);
-    const results = await Promise.all(repos.map(syncRepo));
-    const hasChanges = results.some((changed) => changed);
+    await Promise.all(repos.map(syncRepo));
 
-    // 检查输出目录是否存在
-    const outputPath = process.env.OUTPUT_PATH || "./dist";
-    const absoluteOutputPath = path.isAbsolute(outputPath)
-      ? outputPath
-      : path.resolve(process.cwd(), outputPath);
-    const needsBuild = hasChanges || !fs.existsSync(absoluteOutputPath);
+    // 逐个构建每个仓库
+    for (const repo of repos) {
+      const outputPath = repo.outputPath || `./dist/${repo.name}`;
+      const absoluteOutputPath = path.isAbsolute(outputPath)
+        ? outputPath
+        : path.resolve(process.cwd(), outputPath);
 
-    if (needsBuild) {
-      console.log("[Build] 检测到变更，正在重新生成网页...");
+      // 检查是否需要构建
+      const needsBuild = !fs.existsSync(absoluteOutputPath);
 
-      // 复制文档
-      copyDocsToPublic(repos);
+      if (needsBuild) {
+        console.log(`[Build] ${repo.name} 需要构建...`);
 
-      // 构建
-      await buildProject(repos);
-    } else {
-      console.log("[Check] 所有仓库无变更，跳过构建");
+        // 复制文档
+        copyDocsToPublic(repo);
+
+        // 构建
+        await buildProject(repo);
+      } else {
+        console.log(`[Check] ${repo.name} 无需构建，跳过`);
+      }
     }
   } catch (error) {
     console.error("[Error] 同步或构建失败:", error);
@@ -291,13 +278,14 @@ async function startMonitor() {
     repos.forEach((repo, index) => {
       const type = isLocalPath(repo.url) ? "📁 本地" : "🌐 Git";
       const branch = isLocalPath(repo.url) ? "" : ` (${repo.branch})`;
+      const output = repo.outputPath || `./dist/${repo.name}`;
       console.log(`  ${index + 1}. [${type}] ${repo.name}: ${repo.url}${branch}`);
+      console.log(`      📤 输出: ${output}`);
     });
   } else {
     console.log("[Config] 文档源: 未配置");
   }
   console.log(`[Config] 轮询间隔: ${process.env.POLL_INTERVAL || "*/30 * * * *"}`);
-  console.log(`[Config] 输出目录: ${process.env.OUTPUT_PATH || "./dist"}`);
   console.log("");
 
   // 启动时立即执行一次

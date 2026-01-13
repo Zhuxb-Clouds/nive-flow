@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue";
 import type { MetaConfig } from "./types";
 import ThemeToggle from "./components/ThemeToggle.vue";
+import { showNav, showToc, toggleNav, toggleToc } from "./stores/sidebar";
 
 const meta = ref<MetaConfig>({
   title: "NiveFlow Docs",
@@ -30,11 +31,27 @@ onMounted(async () => {
 <template>
   <div class="app-container">
     <header class="app-header">
-      <div class="header-title">
-        <router-link to="/">{{ meta.logo || meta.title }}</router-link>
-        <ThemeToggle />
+      <div class="header-left">
+        <button
+          class="sidebar-toggle"
+          @click="toggleNav"
+          :class="{ active: showNav }"
+          title="文档导航"
+        ></button>
+        <div class="header-title">
+          <router-link to="/">{{ meta.logo || meta.title }}</router-link>
+        </div>
       </div>
       <nav class="header-menu">
+        <ThemeToggle />
+        <button
+          class="sidebar-toggle"
+          @click="toggleToc"
+          :class="{ active: showToc }"
+          title="本文目录"
+        >
+          📑
+        </button>
         <a v-if="meta.avatar" :href="meta.avatar" target="_blank" class="menu-link">
           <img :src="meta.avatar" alt="Avatar" class="avatar" />
         </a>
@@ -78,13 +95,18 @@ onMounted(async () => {
   border-bottom: 1px solid var(--border-color);
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .header-title {
   cursor: pointer;
   font-family: "Afacad Flux", "Mi Sans", sans-serif;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 1rem;
 }
 
 .header-title a {
@@ -101,6 +123,26 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.sidebar-toggle {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  opacity: 0.5;
+  transition: all 0.2s;
+}
+
+.sidebar-toggle:hover {
+  opacity: 0.8;
+  background: var(--hover-bg);
+}
+
+.sidebar-toggle.active {
+  opacity: 1;
 }
 
 .menu-link {
@@ -122,9 +164,7 @@ onMounted(async () => {
 
 .app-main {
   flex: 1;
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 6rem 2rem 2rem;
+  margin-top: 70px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -145,10 +185,6 @@ onMounted(async () => {
   .app-header {
     padding: 0 5%;
     font-size: 1.2rem;
-  }
-
-  .app-main {
-    padding: 5rem 1rem 1rem;
   }
 }
 </style>

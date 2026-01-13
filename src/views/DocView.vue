@@ -3,6 +3,9 @@ import { ref, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import { renderMarkdown, initHighlighter } from "@/utils/markdown";
 import type { MetaConfig } from "@/types";
+import GlobalNav from "@/components/GlobalNav.vue";
+import TableOfContents from "@/components/TableOfContents.vue";
+import { showNav, showToc } from "@/stores/sidebar";
 
 const props = defineProps<{
   meta: MetaConfig;
@@ -56,24 +59,43 @@ watch(
 </script>
 
 <template>
-  <div class="doc-view">
-    <div v-if="loading" class="loading">
-      <div class="spinner"></div>
-      <p>正在加载文档...</p>
-    </div>
+  <div class="doc-layout">
+    <div class="doc-content">
+      <GlobalNav v-if="showNav" />
 
-    <div v-else-if="error" class="error">
-      <h2>😕 文档未找到</h2>
-      <p>{{ error }}</p>
-      <router-link to="/" class="back-link">← 返回首页</router-link>
-    </div>
+      <div class="content-area">
+        <div v-if="loading" class="loading">
+          <div class="spinner"></div>
+          <p>正在加载文档...</p>
+        </div>
 
-    <article v-else class="markdown-body" v-html="content"></article>
+        <div v-else-if="error" class="error">
+          <h2>😕 文档未找到</h2>
+          <p>{{ error }}</p>
+          <router-link to="/" class="back-link">← 返回首页</router-link>
+        </div>
+
+        <article v-else class="markdown-body" v-html="content"></article>
+      </div>
+
+      <TableOfContents v-if="showToc" :content="content" />
+    </div>
   </div>
 </template>
 
 <style scoped>
-.doc-view {
+.doc-layout {
+  min-height: calc(100vh - 70px);
+}
+
+.doc-content {
+  max-width: 75ch;
+  margin: 0 auto;
+  padding: 2rem;
+  position: relative;
+}
+
+.content-area {
   animation: fadeIn 0.3s ease-in;
 }
 
@@ -119,28 +141,33 @@ watch(
 .error {
   text-align: center;
   padding: 4rem 2rem;
-  color: #666;
 }
 
 .error h2 {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-  color: #333;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--color);
+}
+
+.error p {
+  color: var(--color-secondary);
+  margin-bottom: 1.5rem;
 }
 
 .back-link {
-  display: inline-block;
-  margin-top: 1.5rem;
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--primary-color);
   text-decoration: none;
-  border-radius: 8px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  font-weight: 500;
 }
 
 .back-link:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  text-decoration: underline;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+  .doc-content {
+    padding: 1rem;
+  }
 }
 </style>
