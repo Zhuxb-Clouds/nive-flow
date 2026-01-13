@@ -1,6 +1,6 @@
 {
   "name": "nive-flow",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "NiveFlow 全栈自动化文档发布引擎",
   "type": "module",
   "bin": {
