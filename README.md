@@ -1,295 +1,118 @@
-# 📑 NiveFlow 全栈自动化工具开发白皮书
+# NiveFlow
 
-## 1. 项目定位
+> 🚀 零配置 Markdown 文档发布引擎 — 专注写作，自动发布
 
-**NiveFlow** 是一个"无感化"的文档发布引擎。开发者只需关注 Git 仓库中的 Markdown 文件，工具会自动处理同步、解析、构建与静态部署，最终输出一个高性能的 Vue 3 单页应用。
+[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js)](https://nodejs.org/)
+[![Vue 3](https://img.shields.io/badge/Vue-3-4FC08D?logo=vue.js)](https://vuejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 
-## 2. 核心技术栈
+## ✨ 特性
 
-* **运行时**: Node.js (v18+) + `tsx` (直接执行 TypeScript)
-* **包管理**: pnpm
-* **前端框架**: Vue 3 + TypeScript + Vite
-* **Git 管理**: `simple-git`
-* **任务调度**: `node-cron` (30 分钟轮询)
-* **Markdown 解析系统**:
-  * `markdown-it` (核心)
-  * `markdown-it-katex` (渲染 LaTeX 公式)
-  * `shiki` (基于 VS Code 的代码块高亮)
-* **进程管理**: PM2 (利用 `ecosystem.config.cjs` 管理环境)
+- 📝 **零配置** — 放入 Markdown，自动生成精美网站
+- 🔄 **自动同步** — 支持 Git 仓库或本地目录，定时自动更新
+- 🎨 **主题切换** — 深色/浅色模式，一键切换
+- 📐 **LaTeX 公式** — 原生支持数学公式渲染
+- 🌈 **代码高亮** — VS Code 级别的语法高亮 (Shiki)
+- 📱 **响应式** — 移动端完美适配
+- ⚡ **极速构建** — 基于 Vite，秒级热更新
 
----
-
-## 3. 系统架构
-
-### 3.1 逻辑流
-
-1. **Monitor (后端)**: 依据 PM2 配置的 Cron 表达式，每 30 分钟执行 `git pull`。
-2. **Meta 解析**: 读取 Git 根目录下的 `meta.json`，获取标题、Logo、首页路径。
-3. **构建触发**: 若检测到文件变更，调用 `vite build`。
-4. **渲染 (前端)**: Vite 配合插件将 `.md` 转换为 HTML 字符串，注入样式和代码高亮 CSS。
-5. **输出**: 静态资源输出至 `OUTPUT_PATH` 指定的物理路径。
-
----
-
-## 4. CLI 命令行工具
-
-NiveFlow 提供命令行工具，支持快速初始化和构建：
+## 🚀 快速开始
 
 ```bash
-# 全局安装（可选）
-pnpm link --global
+# 安装
+pnpm install
 
-# 初始化项目 - 创建 meta.json 配置文件
+# 开发模式
+pnpm dev
+
+# 构建
+pnpm build
+```
+
+## 📦 CLI 工具
+
+```bash
+# 初始化配置
 nive-flow init
 
 # 构建静态站点
 nive-flow build
-
-# 查看帮助
-nive-flow --help
 ```
 
-### 4.1 命令说明
+## ⚙️ 配置
 
-| 命令              | 说明                                                      |
-| ----------------- | --------------------------------------------------------- |
-| `nive-flow init`  | 在当前目录创建 `meta.json` 配置文件                       |
-| `nive-flow build` | 将 Markdown 文件构建为静态 HTML，输出到 `_documents` 目录 |
-
----
-
-## 5. 关键代码实现
-
-### 5.1 自动化配置文件 (`ecosystem.config.cjs`)
-
-支持 **Git 仓库** 和 **本地路径** 两种文档源，可单独使用或混合配置。
-
-#### 单文档源配置（简单模式）
-
-```javascript
-module.exports = {
-  apps: [{
-    name: 'nive-flow',
-    script: './scripts/monitor.ts',
-    interpreter: 'node',
-    interpreter_args: '--import tsx',
-    env: {
-      // Git 仓库
-      GIT_REPO_URL: 'https://github.com/your-org/docs.git',
-      GIT_BRANCH: 'main',
-      
-      // 或者本地路径
-      // LOCAL_DOCS_PATH: '/path/to/local/docs',
-      
-      POLL_INTERVAL: '*/30 * * * *',
-      OUTPUT_PATH: '/var/www/nive-docs',
-      NODE_ENV: 'production'
-    }
-  }]
-};
-```
-
-#### 多文档源配置（高级模式）
-
-支持 Git 仓库和本地路径混合使用：
-
-```javascript
-module.exports = {
-  apps: [{
-    name: 'nive-flow',
-    script: './scripts/monitor.ts',
-    interpreter: 'node',
-    interpreter_args: '--import tsx',
-    env: {
-      DOCS_REPOS: JSON.stringify([
-        // Git 仓库
-        {
-          name: "game-docs",
-          url: "https://github.com/your-org/game-docs",
-          branch: "main",
-        },
-        // 本地绝对路径
-        {
-          name: "local-notes",
-          url: "/home/user/Documents/notes",
-        },
-        // 本地相对路径
-        {
-          name: "project-docs",
-          url: "./docs",
-        },
-        // 家目录路径
-        {
-          name: "personal",
-          url: "~/my-docs",
-        }
-      ]),
-      POLL_INTERVAL: '*/30 * * * *',
-      OUTPUT_PATH: '/var/www/nive-docs',
-      NODE_ENV: 'production'
-    }
-  }]
-};
-```
-
-### 5.2 配置项说明
-
-| 环境变量          | 说明                        | 默认值         |
-| ----------------- | --------------------------- | -------------- |
-| `DOCS_REPOS`      | 多文档源配置（JSON 数组）   | -              |
-| `GIT_REPO_URL`    | 单 Git 仓库地址（兼容模式） | -              |
-| `GIT_BRANCH`      | 单 Git 仓库分支（兼容模式） | `main`         |
-| `LOCAL_DOCS_PATH` | 单本地路径（兼容模式）      | -              |
-| `POLL_INTERVAL`   | Cron 轮询表达式             | `*/30 * * * *` |
-| `OUTPUT_PATH`     | 构建输出目录                | `./dist`       |
-
-#### DOCS_REPOS 文档源配置项
-
-| 字段         | 说明                         | 必填          |
-| ------------ | ---------------------------- | ------------- |
-| `name`       | 文档名称，用于目录命名       | ✅             |
-| `url`        | Git 仓库地址 **或** 本地路径 | ✅             |
-| `branch`     | Git 分支（仅 Git 模式）      | ❌ (默认 main) |
-| `outputPath` | 独立输出路径                 | ❌             |
-
-#### 本地路径格式支持
-
-| 格式     | 示例                  | 说明               |
-| -------- | --------------------- | ------------------ |
-| 绝对路径 | `/home/user/docs`     | Unix 绝对路径      |
-| 相对路径 | `./docs` 或 `../docs` | 相对于工作目录     |
-| 家目录   | `~/Documents/notes`   | 自动展开为用户目录 |
-| Windows  | `C:\Users\docs`       | Windows 盘符路径   |
-
-### 5.3 后端：同步与构建引擎 (`scripts/monitor.ts`)
-
-```typescript
-import { execSync } from 'child_process';
-import path from 'path';
-import fs from 'fs-extra';
-import simpleGit from 'simple-git';
-import cron from 'node-cron';
-
-const DOCS_SOURCE = path.resolve(__dirname, '../src/docs-temp');
-
-async function syncAndBuild() {
-  const git = simpleGit();
-  if (!fs.existsSync(DOCS_SOURCE)) {
-    await git.clone(process.env.GIT_REPO_URL!, DOCS_SOURCE);
-  }
-  
-  const pull = await git.cwd(DOCS_SOURCE).pull();
-  const outputPath = process.env.OUTPUT_PATH || './dist';
-  
-  if (pull.summary.changes > 0 || !fs.existsSync(outputPath)) {
-    console.log('[Build] 检测到变更，正在重新生成网页...');
-    execSync(`pnpm build:only --outDir "${outputPath}"`, {
-      env: { ...process.env },
-      stdio: 'inherit'
-    });
-  }
-}
-
-cron.schedule(process.env.POLL_INTERVAL!, syncAndBuild);
-```
-
-### 5.4 前端：Markdown 增强渲染器
-
-```typescript
-// src/utils/markdown.ts
-import MarkdownIt from 'markdown-it';
-import katex from 'markdown-it-katex';
-import { createHighlighter } from 'shiki';
-
-const md = new MarkdownIt({ html: true, linkify: true })
-  .use(katex);  // 支持 $E=mc^2$
-
-// Shiki 代码高亮
-const highlighter = await createHighlighter({
-  themes: ['one-dark-pro'],
-  langs: ['typescript', 'javascript', 'vue', 'json', 'bash']
-});
-
-export async function renderMarkdown(content: string): Promise<string> {
-  return md.render(content);
-}
-```
-
----
-
-## 6. 项目配置规范 (`meta.json`)
-
-此文件需放在 Git 仓库根目录，用于驱动前端 UI。
+在文档根目录创建 `meta.json`：
 
 ```json
 {
-  "title": "Nive Game Docs | 飞雪工作室 共识文档",
-  "logo": "Nive Docs",
+  "title": "My Docs",
+  "logo": "📚 Docs",
   "indexPath": "README.md",
-  "avatar": "https://huashuo-oss.oss-cn-beijing.aliyuncs.com/icon.ico"
+  "avatar": "https://example.com/avatar.png"
 }
 ```
 
----
+## 🔧 部署配置
 
-## 7. 部署与使用
+编辑 `ecosystem.config.cjs`：
 
-### 7.1 本地开发
-
-```bash
-# 安装依赖
-pnpm install
-
-# 启动开发服务器
-pnpm dev
-
-# 构建生产版本
-pnpm build
+```javascript
+module.exports = {
+  apps: [{
+    name: 'nive-flow',
+    script: './scripts/monitor.ts',
+    interpreter: 'node',
+    interpreter_args: '--import tsx',
+    env: {
+      // Git 仓库模式
+      GIT_REPO_URL: 'https://github.com/your-org/docs.git',
+      
+      // 或本地目录模式
+      // LOCAL_DOCS_PATH: './docs',
+      
+      POLL_INTERVAL: '*/30 * * * *',  // 每30分钟同步
+      OUTPUT_PATH: '/var/www/docs',
+      NODE_ENV: 'production'
+    }
+  }]
+};
 ```
 
-### 7.2 服务器部署
+### 多文档源
 
-1. **准备环境**: 服务器安装 Node.js (v18+), Git, PM2, pnpm
-2. **安装依赖**: `pnpm install`
-3. **配置变量**: 修改 `ecosystem.config.cjs` 中的环境变量
-   - `GIT_REPO_URL`: 文档仓库地址
-   - `OUTPUT_PATH`: 构建输出路径
-4. **启动服务**: `pm2 start ecosystem.config.cjs`
+```javascript
+env: {
+  DOCS_REPOS: JSON.stringify([
+    { name: "api-docs", url: "https://github.com/org/api-docs" },
+    { name: "guides", url: "~/Documents/guides" },
+    { name: "notes", url: "./local-notes" }
+  ])
+}
+```
 
-### 7.3 自动化流程
-
-* ⏰ 每 30 分钟检查一次仓库
-* 📝 自动识别 `meta.json` 更新
-* 🔢 自动编译 LaTeX 公式和代码块
-* 🌙 支持深色/浅色主题切换
-* 📦 自动将最新的 SPA 部署到指定 Web 目录
-
----
-
-## 8. 项目结构
+## 🏗️ 项目结构
 
 ```
 nive-flow/
-├── bin/
-│   └── nive-flow.js        # CLI 命令行工具
-├── scripts/
-│   └── monitor.ts          # Git 同步与构建引擎
+├── bin/nive-flow.js       # CLI 入口
+├── scripts/monitor.ts     # 同步引擎
 ├── src/
-│   ├── components/
-│   │   └── ThemeToggle.vue # 主题切换组件
-│   ├── styles/
-│   │   ├── globals.css     # 全局样式 (深色/浅色模式)
-│   │   └── post.css        # Markdown 文章样式
-│   ├── views/
-│   │   ├── Home.vue        # 首页
-│   │   └── DocView.vue     # 文档页
-│   ├── utils/
-│   │   └── markdown.ts     # Markdown 渲染器
-│   ├── App.vue             # 根组件
-│   └── main.ts             # 入口文件
-├── public/
-│   └── meta.json           # 站点配置
-├── ecosystem.config.cjs    # PM2 配置
-├── vite.config.ts          # Vite 配置
-└── package.json
+│   ├── components/        # Vue 组件
+│   ├── views/             # 页面视图
+│   ├── utils/markdown.ts  # Markdown 渲染
+│   └── styles/            # 样式文件
+├── ecosystem.config.cjs   # PM2 配置
+└── meta.json              # 站点配置
 ```
+
+## 🛠️ 技术栈
+
+| 类别     | 技术                        |
+| -------- | --------------------------- |
+| 前端     | Vue 3 + TypeScript + Vite   |
+| Markdown | markdown-it + Shiki + KaTeX |
+| 部署     | PM2 + simple-git            |
+
+## 📄 License
+
+MIT © NiveFlow

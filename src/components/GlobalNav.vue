@@ -58,12 +58,6 @@ function getDocPath(itemPath: string): string {
   return `/doc/${itemPath}`;
 }
 
-function isActive(itemPath: string): boolean {
-  const currentPath = route.params.path as string;
-  if (itemPath === "README" && route.path === "/") return true;
-  return currentPath === itemPath;
-}
-
 onMounted(() => {
   loadNavTree();
 });
@@ -116,7 +110,7 @@ watch(
 
 <!-- 递归树节点组件 -->
 <script lang="ts">
-import { defineComponent, h, PropType, Transition } from "vue";
+import { defineComponent, h, PropType, Transition, VNode } from "vue";
 import { RouterLink } from "vue-router";
 
 interface TreeNodeItem {
@@ -126,7 +120,8 @@ interface TreeNodeItem {
   children?: TreeNodeItem[];
 }
 
-const TreeNode = defineComponent({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const TreeNode: any = defineComponent({
   name: "TreeNode",
   props: {
     items: {
@@ -144,22 +139,22 @@ const TreeNode = defineComponent({
   },
   emits: ["toggle"],
   setup(props, { emit }) {
-    const isExpanded = (path: string) => props.expandedFolders.has(path);
+    const isExpanded = (path: string): boolean => props.expandedFolders.has(path);
 
     const getDocPath = (itemPath: string): string => {
       if (itemPath === "README") return "/";
       return `/doc/${itemPath}`;
     };
 
-    const toggle = (path: string) => {
+    const toggle = (path: string): void => {
       emit("toggle", path);
     };
 
-    return () => {
+    return (): VNode => {
       return h(
         "ul",
         { class: "sub-tree" },
-        props.items.map((item) => {
+        props.items.map((item): VNode => {
           const paddingStyle = { paddingLeft: `${props.depth * 0.75}rem` };
 
           if (item.type === "folder") {
@@ -176,7 +171,7 @@ const TreeNode = defineComponent({
                   h("span", { class: ["folder-arrow", { expanded: isExpanded(item.path) }] }, "▸"),
                 ]
               ),
-              h(Transition, { name: "tree-expand" }, () =>
+              h(Transition, { name: "tree-expand" }, (): VNode | null =>
                 isExpanded(item.path) && item.children
                   ? h(TreeNode, {
                       items: item.children,
