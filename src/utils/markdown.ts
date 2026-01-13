@@ -1,5 +1,6 @@
 import MarkdownIt from "markdown-it";
-import katex from "markdown-it-katex";
+import katex from "@traptitech/markdown-it-katex";
+
 import { createHighlighter, type Highlighter } from "shiki";
 
 let highlighter: Highlighter | null = null;
