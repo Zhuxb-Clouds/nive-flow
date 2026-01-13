@@ -10,7 +10,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: process.env.BUILD_OUTPUT_DIR || "dist",
+    outDir: process.env.OUT_PUT || "dist",
     emptyOutDir: true,
   },
   server: {

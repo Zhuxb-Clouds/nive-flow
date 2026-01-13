@@ -51,9 +51,9 @@ nive-flow --help
 
 ### 4.1 命令说明
 
-| 命令 | 说明 |
-|------|------|
-| `nive-flow init` | 在当前目录创建 `meta.json` 配置文件 |
+| 命令              | 说明                                                      |
+| ----------------- | --------------------------------------------------------- |
+| `nive-flow init`  | 在当前目录创建 `meta.json` 配置文件                       |
 | `nive-flow build` | 将 Markdown 文件构建为静态 HTML，输出到 `_documents` 目录 |
 
 ---
@@ -62,7 +62,9 @@ nive-flow --help
 
 ### 5.1 自动化配置文件 (`ecosystem.config.cjs`)
 
-将 Git 仓库地址等敏感信息解耦，支持配置输出路径。
+支持 **Git 仓库** 和 **本地路径** 两种文档源，可单独使用或混合配置。
+
+#### 单文档源配置（简单模式）
 
 ```javascript
 module.exports = {
@@ -72,10 +74,58 @@ module.exports = {
     interpreter: 'node',
     interpreter_args: '--import tsx',
     env: {
-      GIT_REPO_URL: 'https://github.com/nive-studio/docs.git',
+      // Git 仓库
+      GIT_REPO_URL: 'https://github.com/your-org/docs.git',
       GIT_BRANCH: 'main',
+      
+      // 或者本地路径
+      // LOCAL_DOCS_PATH: '/path/to/local/docs',
+      
       POLL_INTERVAL: '*/30 * * * *',
-      OUTPUT_PATH: '/var/www/nive-docs-html',  // 构建输出路径
+      OUTPUT_PATH: '/var/www/nive-docs',
+      NODE_ENV: 'production'
+    }
+  }]
+};
+```
+
+#### 多文档源配置（高级模式）
+
+支持 Git 仓库和本地路径混合使用：
+
+```javascript
+module.exports = {
+  apps: [{
+    name: 'nive-flow',
+    script: './scripts/monitor.ts',
+    interpreter: 'node',
+    interpreter_args: '--import tsx',
+    env: {
+      DOCS_REPOS: JSON.stringify([
+        // Git 仓库
+        {
+          name: "game-docs",
+          url: "https://github.com/your-org/game-docs",
+          branch: "main",
+        },
+        // 本地绝对路径
+        {
+          name: "local-notes",
+          url: "/home/user/Documents/notes",
+        },
+        // 本地相对路径
+        {
+          name: "project-docs",
+          url: "./docs",
+        },
+        // 家目录路径
+        {
+          name: "personal",
+          url: "~/my-docs",
+        }
+      ]),
+      POLL_INTERVAL: '*/30 * * * *',
+      OUTPUT_PATH: '/var/www/nive-docs',
       NODE_ENV: 'production'
     }
   }]
@@ -84,13 +134,32 @@ module.exports = {
 
 ### 5.2 配置项说明
 
-| 环境变量 | 说明 | 默认值 |
-|----------|------|--------|
-| `GIT_REPO_URL` | 文档 Git 仓库地址 | - |
-| `GIT_BRANCH` | Git 分支 | `main` |
-| `POLL_INTERVAL` | Cron 轮询表达式 | `*/30 * * * *` |
-| `OUTPUT_PATH` | 构建输出目录 | `./_documents` |
-| `BUILD_OUTPUT_DIR` | 备用输出目录（兼容旧版） | `./dist` |
+| 环境变量          | 说明                        | 默认值         |
+| ----------------- | --------------------------- | -------------- |
+| `DOCS_REPOS`      | 多文档源配置（JSON 数组）   | -              |
+| `GIT_REPO_URL`    | 单 Git 仓库地址（兼容模式） | -              |
+| `GIT_BRANCH`      | 单 Git 仓库分支（兼容模式） | `main`         |
+| `LOCAL_DOCS_PATH` | 单本地路径（兼容模式）      | -              |
+| `POLL_INTERVAL`   | Cron 轮询表达式             | `*/30 * * * *` |
+| `OUTPUT_PATH`     | 构建输出目录                | `./dist`       |
+
+#### DOCS_REPOS 文档源配置项
+
+| 字段         | 说明                         | 必填          |
+| ------------ | ---------------------------- | ------------- |
+| `name`       | 文档名称，用于目录命名       | ✅             |
+| `url`        | Git 仓库地址 **或** 本地路径 | ✅             |
+| `branch`     | Git 分支（仅 Git 模式）      | ❌ (默认 main) |
+| `outputPath` | 独立输出路径                 | ❌             |
+
+#### 本地路径格式支持
+
+| 格式     | 示例                  | 说明               |
+| -------- | --------------------- | ------------------ |
+| 绝对路径 | `/home/user/docs`     | Unix 绝对路径      |
+| 相对路径 | `./docs` 或 `../docs` | 相对于工作目录     |
+| 家目录   | `~/Documents/notes`   | 自动展开为用户目录 |
+| Windows  | `C:\Users\docs`       | Windows 盘符路径   |
 
 ### 5.3 后端：同步与构建引擎 (`scripts/monitor.ts`)
 

@@ -11,3 +11,4 @@ src/docs/
 npm-debug.log*
 .DS_Store
 ecosystem.config.cjs
+public
