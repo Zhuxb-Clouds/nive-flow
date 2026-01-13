@@ -227,7 +227,7 @@ async function buildProject(repo: DocsRepo) {
 }
 
 // 主同步和构建流程
-async function syncAndBuild() {
+async function syncAndBuild(force = false) {
   const repos = await parseDocsRepos();
   if (repos.length === 0) {
     console.error("[Error] 没有配置有效的文档仓库");
@@ -237,20 +237,27 @@ async function syncAndBuild() {
   try {
     // 同步所有仓库
     console.log(`\n[Sync] 开始同步 ${repos.length} 个文档仓库...`);
-    await Promise.all(repos.map(syncRepo));
+    const syncResults = await Promise.all(repos.map(syncRepo));
 
     // 逐个构建每个仓库
-    for (const repo of repos) {
+    for (const [index, repo] of repos.entries()) {
       const outputPath = repo.outputPath || `./dist/${repo.name}`;
       const absoluteOutputPath = path.isAbsolute(outputPath)
         ? outputPath
         : path.resolve(process.cwd(), outputPath);
 
       // 检查是否需要构建
-      const needsBuild = !fs.existsSync(absoluteOutputPath);
+      const hasChanges = syncResults[index];
+      const needsBuild = force || !fs.existsSync(absoluteOutputPath) || hasChanges;
 
       if (needsBuild) {
-        console.log(`[Build] ${repo.name} 需要构建...`);
+        if (force) {
+          console.log(`[Build] ${repo.name} 强制构建...`);
+        } else if (!fs.existsSync(absoluteOutputPath)) {
+          console.log(`[Build] ${repo.name} 首次构建...`);
+        } else if (hasChanges) {
+          console.log(`[Build] ${repo.name} 检测到变更，更新构建...`);
+        }
 
         // 复制文档
         copyDocsToPublic(repo);
@@ -263,6 +270,7 @@ async function syncAndBuild() {
     }
   } catch (error) {
     console.error("[Error] 同步或构建失败:", error);
+    if (force) process.exit(1);
   }
 }
 
@@ -285,7 +293,9 @@ async function startMonitor() {
   } else {
     console.log("[Config] 文档源: 未配置");
   }
-  console.log(`[Config] 轮询间隔: ${process.env.POLL_INTERVAL || "*/30 * * * *"}`);
+  console.log(
+    `[Config] 轮询间隔: ${process.env.POLL_INTERVAL || "*/30 * * * *"}`
+  );
   console.log("");
 
   // 启动时立即执行一次
@@ -299,5 +309,19 @@ async function startMonitor() {
   });
 }
 
-// 启动
-startMonitor();
+// 检查命令行参数
+const args = process.argv.slice(2);
+if (args.includes("--once") || args.includes("--force")) {
+  // 单次执行模式（支持强制构建）
+  const force = args.includes("--force");
+  console.log(
+    `[Mode] 单次执行模式 ${force ? "(强制构建)" : "(增量构建)"}`
+  );
+  syncAndBuild(force).then(() => {
+    console.log("[Done] 执行完成");
+    process.exit(0);
+  });
+} else {
+  // 监控服务模式
+  startMonitor();
+}
