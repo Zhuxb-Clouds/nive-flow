@@ -293,9 +293,7 @@ async function startMonitor() {
   } else {
     console.log("[Config] 文档源: 未配置");
   }
-  console.log(
-    `[Config] 轮询间隔: ${process.env.POLL_INTERVAL || "*/30 * * * *"}`
-  );
+  console.log(`[Config] 轮询间隔: ${process.env.POLL_INTERVAL || "*/30 * * * *"}`);
   console.log("");
 
   // 启动时立即执行一次
@@ -314,9 +312,7 @@ const args = process.argv.slice(2);
 if (args.includes("--once") || args.includes("--force")) {
   // 单次执行模式（支持强制构建）
   const force = args.includes("--force");
-  console.log(
-    `[Mode] 单次执行模式 ${force ? "(强制构建)" : "(增量构建)"}`
-  );
+  console.log(`[Mode] 单次执行模式 ${force ? "(强制构建)" : "(增量构建)"}`);
   syncAndBuild(force).then(() => {
     console.log("[Done] 执行完成");
     process.exit(0);
