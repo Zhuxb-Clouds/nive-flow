@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import type { MetaConfig } from "./types";
+import ThemeToggle from "./components/ThemeToggle.vue";
 
 const meta = ref<MetaConfig>({
   title: "NiveFlow Docs",
@@ -10,6 +11,10 @@ const meta = ref<MetaConfig>({
 });
 
 onMounted(async () => {
+  // 初始化主题
+  const savedTheme = localStorage.getItem("theme") || "dark";
+  document.documentElement.setAttribute("data-theme", savedTheme);
+
   try {
     const response = await fetch("/meta.json");
     if (response.ok) {
@@ -25,10 +30,15 @@ onMounted(async () => {
 <template>
   <div class="app-container">
     <header class="app-header">
-      <div class="header-content">
-        <img v-if="meta.avatar" :src="meta.avatar" alt="Logo" class="logo-img" />
-        <h1 class="logo-text">{{ meta.logo }}</h1>
+      <div class="header-title">
+        <router-link to="/">{{ meta.logo || meta.title }}</router-link>
+        <ThemeToggle />
       </div>
+      <nav class="header-menu">
+        <a v-if="meta.avatar" :href="meta.avatar" target="_blank" class="menu-link">
+          <img :src="meta.avatar" alt="Avatar" class="avatar" />
+        </a>
+      </nav>
     </header>
 
     <main class="app-main">
@@ -36,7 +46,7 @@ onMounted(async () => {
     </main>
 
     <footer class="app-footer">
-      <p>Powered by NiveFlow</p>
+      <p>Powered by NiveFlow · Built with 💙</p>
     </footer>
   </div>
 </template>
@@ -49,46 +59,96 @@ onMounted(async () => {
 }
 
 .app-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 1rem 2rem;
-  color: white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: fixed;
+  width: 100%;
+  padding: 0 15%;
+  top: 0;
+  left: 0;
+  right: 0;
+  font-size: 1.5rem;
+  background-color: var(--bg-color);
+  color: var(--color);
+  transition: all 0.2s;
+  font-family: "Lora", serif;
+  z-index: 100;
+  max-height: 70px;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.header-content {
+.header-title {
+  cursor: pointer;
+  font-family: "Afacad Flux", "Mi Sans", sans-serif;
+  font-weight: 500;
   display: flex;
   align-items: center;
   gap: 1rem;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
-.logo-img {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+.header-title a {
+  color: inherit;
+  text-decoration: none;
+  transition: opacity 0.2s;
 }
 
-.logo-text {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0;
+.header-title a:hover {
+  opacity: 0.8;
+}
+
+.header-menu {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.menu-link {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  transition: transform 0.2s;
+}
+
+.menu-link:hover {
+  transform: scale(1.1);
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
 }
 
 .app-main {
   flex: 1;
-  max-width: 1200px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 6rem 2rem 2rem;
   width: 100%;
   box-sizing: border-box;
 }
 
 .app-footer {
-  background: #f5f5f5;
-  padding: 1rem;
+  background-color: var(--blockquote-background-color);
+  padding: 1.5rem;
   text-align: center;
-  color: #666;
-  font-size: 0.9rem;
+  color: var(--color);
+  font-size: 0.85rem;
+  font-family: "Noto Serif SC", serif;
+  border-top: 1px solid var(--border-color);
+  transition: all 0.2s;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0 5%;
+    font-size: 1.2rem;
+  }
+
+  .app-main {
+    padding: 5rem 1rem 1rem;
+  }
 }
 </style>

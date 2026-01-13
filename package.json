@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "description": "NiveFlow 全栈自动化文档发布引擎",
   "type": "module",
+  "bin": {
+    "nive-flow": "bin/nive-flow.js"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",
+    "build:only": "vite build",
     "preview": "vite preview",
     "monitor": "tsx scripts/monitor.ts",
     "start": "pm2 start ecosystem.config.cjs",

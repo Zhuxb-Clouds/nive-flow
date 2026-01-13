@@ -27,9 +27,12 @@ async function syncAndBuild() {
     const pull = await git.cwd(DOCS_SOURCE).pull();
 
     // 变更检测：有新文件或输出目录不存在时构建
-    const buildOutputDir = process.env.BUILD_OUTPUT_DIR || "./dist";
+    const outputPath = process.env.OUTPUT_PATH || process.env.BUILD_OUTPUT_DIR || "./dist";
+    const absoluteOutputPath = path.isAbsolute(outputPath)
+      ? outputPath
+      : path.resolve(process.cwd(), outputPath);
 
-    if (pull.summary.changes > 0 || !fs.existsSync(buildOutputDir)) {
+    if (pull.summary.changes > 0 || !fs.existsSync(absoluteOutputPath)) {
       console.log("[Build] 检测到变更，正在重新生成网页...");
 
       // 复制 meta.json 到 public 目录供前端读取
@@ -47,14 +50,14 @@ async function syncAndBuild() {
       });
       console.log("[Docs] 已同步文档文件");
 
-      // 执行 Vite 构建
-      execSync("pnpm build", {
+      // 执行 Vite 构建，输出到指定目录
+      execSync(`pnpm build:only --outDir "${absoluteOutputPath}"`, {
         cwd: path.resolve(__dirname, ".."),
         env: { ...process.env },
         stdio: "inherit",
       });
 
-      console.log("[Build] 构建完成！");
+      console.log(`[Build] 构建完成！输出目录: ${absoluteOutputPath}`);
     } else {
       console.log("[Check] 无变更，跳过构建");
     }
@@ -67,7 +70,7 @@ async function syncAndBuild() {
 console.log("[NiveFlow] 文档监控服务已启动");
 console.log(`[Config] Git 仓库: ${process.env.GIT_REPO_URL}`);
 console.log(`[Config] 轮询间隔: ${process.env.POLL_INTERVAL}`);
-console.log(`[Config] 输出目录: ${process.env.BUILD_OUTPUT_DIR}`);
+console.log(`[Config] 输出目录: ${process.env.OUTPUT_PATH || process.env.BUILD_OUTPUT_DIR}`);
 
 syncAndBuild();
 

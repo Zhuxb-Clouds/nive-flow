@@ -1,0 +1,332 @@
+/* NiveFlow - Markdown 文章样式 (参考 NiveFlare) */
+
+.markdown-body {
+  font-family: "Noto Sans SC", sans-serif;
+  font-size: 1rem;
+  line-height: 1.8;
+  padding-block: 2rem;
+}
+
+/* 标题样式 */
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  font-family: "Mi Sans", sans-serif;
+  scroll-margin-top: 90px;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color);
+}
+
+.markdown-body h1 {
+  font-family: "Smiley Sans", "Mi Sans", sans-serif;
+  font-size: 2.25em;
+  font-weight: 400;
+  margin-block: 1em;
+}
+
+.markdown-body h2 {
+  font-size: 1.75em;
+  margin-block: 0.75em;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.markdown-body h3 {
+  font-size: 1.5em;
+  margin-block: 0.75em;
+}
+
+.markdown-body h4 {
+  font-size: 1.25em;
+  margin-block: 0.5em;
+}
+
+.markdown-body h5 {
+  font-size: 1.1em;
+  margin-block: 0.25em;
+}
+
+.markdown-body h6 {
+  font-size: 1em;
+  margin-block: 0;
+}
+
+/* 段落 */
+.markdown-body p {
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+  margin: 1.5em 0;
+  text-wrap: pretty;
+}
+
+.markdown-body p > img {
+  width: 100%;
+  border-radius: 8px;
+}
+
+/* 链接 */
+.markdown-body a {
+  color: var(--link-color);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.markdown-body a:hover {
+  color: var(--link-hover-color);
+  text-decoration: underline;
+}
+
+/* 列表 */
+.markdown-body ul,
+.markdown-body ol {
+  margin: 1em 0;
+  padding-left: 2em;
+}
+
+.markdown-body li {
+  margin: 0.5em 0;
+}
+
+.markdown-body ol {
+  padding-inline-start: 1em;
+  font-size: 1.05em;
+}
+
+.markdown-body li > p {
+  margin: 0.25em;
+}
+
+/* 行内代码 - 下划线效果 */
+.markdown-body code:not(pre code) {
+  font-family: "Lora", "Fira Code", monospace;
+  font-style: italic;
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+  margin: 0 0.25rem;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.markdown-body code:not(pre code)::after {
+  display: block;
+  content: "";
+  width: calc(100% - 4px);
+  height: 0;
+  border: 2px solid var(--code-after-color);
+  border-radius: 5px;
+  position: absolute;
+  top: 85%;
+  left: 0;
+  z-index: -1;
+}
+
+/* 代码块 */
+.markdown-body pre {
+  margin: 1em 0;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.markdown-body pre > code::after {
+  display: none;
+}
+
+.markdown-body pre > code {
+  font-family: "Fira Code", "Monaco", "Consolas", monospace;
+  font-style: normal;
+  font-weight: normal;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.markdown-body pre > code::selection,
+.markdown-body span.token::selection {
+  background-color: #d3d3d3;
+  color: #000;
+}
+
+/* Shiki 代码高亮 */
+.markdown-body .shiki {
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+:not(pre) > code[class*="language-"],
+pre[class*="language-"] {
+  background: #232323;
+}
+
+/* 代码高亮 Token 颜色 */
+.markdown-body .token.string {
+  color: #9fffd2;
+}
+
+.markdown-body .token.keyword {
+  color: #6ffffd;
+}
+
+.markdown-body .token.function {
+  color: #76c6ff;
+}
+
+.markdown-body .token.builtin,
+.markdown-body .token.selector {
+  color: #8091ff;
+}
+
+.markdown-body .token.attr-name {
+  color: rgb(207, 219, 255);
+}
+
+.markdown-body .token.char,
+.markdown-body .token.inserted {
+  color: #ea9fff;
+}
+
+.markdown-body .token.punctuation {
+  color: #fff;
+}
+
+.markdown-body .token.constant,
+.markdown-body .token.deleted,
+.markdown-body .token.property,
+.markdown-body .token.symbol,
+.markdown-body .token.tag {
+  color: #12ffeb;
+}
+
+/* 引用块 */
+.markdown-body blockquote {
+  position: relative;
+  font-family: "Noto Serif SC", serif;
+  background-color: var(--blockquote-background-color);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  margin: 1em 0;
+}
+
+.markdown-body blockquote p {
+  text-indent: 0;
+  text-wrap: balance;
+  font-size: inherit;
+}
+
+.markdown-body blockquote > p:has(strong) {
+  opacity: 0.8;
+  text-align: center;
+}
+
+.markdown-body blockquote::before {
+  content: "";
+  position: absolute;
+  width: 5px;
+  background: var(--blockquote-bar-color);
+  height: 100%;
+  top: 0;
+  left: -16px;
+  border-radius: calc(infinity * 1px);
+}
+
+/* 表格 */
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  font-size: 0.95em;
+  text-align: left;
+  box-shadow: 0 2px 3px var(--shadow-color);
+}
+
+.markdown-body th,
+.markdown-body td {
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.markdown-body th {
+  background-color: var(--bg-color);
+  color: var(--color);
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.markdown-body tr:nth-child(even) {
+  background-color: var(--blockquote-background-color);
+}
+
+.markdown-body tr:hover {
+  background-color: var(--blockquote-background-color);
+  cursor: pointer;
+}
+
+/* 图片 */
+.markdown-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1em 0;
+}
+
+/* 水平线 */
+.markdown-body hr {
+  margin: 2em 0;
+  border: none;
+  border-top: 1px solid var(--border-color);
+}
+
+/* KaTeX 公式 */
+.markdown-body .katex-display {
+  margin: 1.5em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.markdown-body .katex {
+  font-size: 1.1em;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .markdown-body {
+    font-size: 0.95rem;
+  }
+
+  .markdown-body pre {
+    padding: 0.75rem;
+  }
+
+  .markdown-body table,
+  .markdown-body thead,
+  .markdown-body tbody,
+  .markdown-body th,
+  .markdown-body td,
+  .markdown-body tr {
+    display: block;
+  }
+
+  .markdown-body tr {
+    margin-bottom: 15px;
+  }
+
+  .markdown-body th {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+
+  .markdown-body td {
+    border: none;
+    position: relative;
+    padding-left: 50%;
+    text-align: right;
+  }
+}

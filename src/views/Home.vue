@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { useRouter } from "vue-router";
 import { renderMarkdown, initHighlighter } from "@/utils/markdown";
 import type { MetaConfig } from "@/types";
 
@@ -8,7 +7,6 @@ const props = defineProps<{
   meta: MetaConfig;
 }>();
 
-const router = useRouter();
 const content = ref("");
 const loading = ref(true);
 
@@ -32,10 +30,6 @@ onMounted(async () => {
     loading.value = false;
   }
 });
-
-function navigateToDoc(path: string) {
-  router.push({ name: "Doc", params: { path } });
-}
 </script>
 
 <template>
