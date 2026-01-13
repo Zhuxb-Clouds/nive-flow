@@ -11,6 +11,17 @@ const meta = ref<MetaConfig>({
   avatar: "",
 });
 
+const setFavicon = (iconUrl?: string) => {
+  if (!iconUrl) return;
+  let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "icon";
+    document.head.append(link);
+  }
+  link.href = iconUrl;
+};
+
 onMounted(async () => {
   // 初始化主题
   const savedTheme = localStorage.getItem("theme") || "dark";
@@ -21,6 +32,7 @@ onMounted(async () => {
     if (response.ok) {
       meta.value = await response.json();
       document.title = meta.value.title;
+      setFavicon(meta.value.avatar);
     }
   } catch (error) {
     console.warn("无法加载 meta.json，使用默认配置");
