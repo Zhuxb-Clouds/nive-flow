@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.local
+.env
+.env.*
+!.env.example
+src/docs-temp/
+src/docs/
+*.log
+npm-debug.log*
+.DS_Store
