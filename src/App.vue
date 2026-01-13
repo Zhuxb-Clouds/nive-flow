@@ -39,6 +39,9 @@ onMounted(async () => {
           title="文档导航"
         ></button>
         <div class="header-title">
+          <a v-if="meta.avatar" href="/" target="_blank" class="menu-link">
+            <img :src="meta.avatar" class="avatar" />
+          </a>
           <router-link to="/">{{ meta.logo || meta.title }}</router-link>
         </div>
       </div>
@@ -52,9 +55,6 @@ onMounted(async () => {
         >
           📑
         </button>
-        <a v-if="meta.avatar" :href="meta.avatar" target="_blank" class="menu-link">
-          <img :src="meta.avatar" alt="Avatar" class="avatar" />
-        </a>
       </nav>
     </header>
 

@@ -17,6 +17,13 @@ interface DocsRepo {
   outputPath?: string; // 输出路径（可选，覆盖全局配置）
 }
 
+export interface NavTreeNode {
+  name: string;
+  path: string;
+  type: "file" | "folder";
+  children?: NavTreeNode[];
+}
+
 // 用于存储上次的文件哈希，检测本地文件变更
 const localHashCache: Map<string, string> = new Map();
 
@@ -30,6 +37,61 @@ function isLocalPath(url: string): boolean {
     url.startsWith("~") ||
     /^[a-zA-Z]:[\\/]/.test(url) // Windows 盘符路径
   );
+}
+
+export function generateNavTree(docsDir: string, outputFile?: string): string | null {
+  if (!fs.existsSync(docsDir)) {
+    console.warn(`[Nav] 文档目录不存在，跳过导航树生成: ${docsDir}`);
+    return null;
+  }
+
+  function scanDir(dir: string, basePath = ""): NavTreeNode[] {
+    const items = fs.readdirSync(dir, { withFileTypes: true });
+    const result: NavTreeNode[] = [];
+
+    const folders = items.filter((item) => item.isDirectory() && !item.name.startsWith("."));
+    const files = items.filter(
+      (item) => item.isFile() && item.name.endsWith(".md") && item.name !== "meta.json"
+    );
+
+    for (const folder of folders.sort((a, b) => a.name.localeCompare(b.name, "zh-CN"))) {
+      const folderPath = path.join(dir, folder.name);
+      const relativePath = basePath ? `${basePath}/${folder.name}` : folder.name;
+      const children = scanDir(folderPath, relativePath);
+
+      if (children.length > 0) {
+        result.push({
+          name: folder.name,
+          path: relativePath,
+          type: "folder",
+          children,
+        });
+      }
+    }
+
+    for (const file of files.sort((a, b) => {
+      if (a.name === "README.md") return -1;
+      if (b.name === "README.md") return 1;
+      return a.name.localeCompare(b.name, "zh-CN");
+    })) {
+      const fileName = file.name.replace(/\.md$/, "");
+      const relativePath = basePath ? `${basePath}/${fileName}` : fileName;
+      result.push({
+        name: fileName === "README" ? "概述" : fileName,
+        path: relativePath,
+        type: "file",
+      });
+    }
+
+    return result;
+  }
+
+  const tree = scanDir(docsDir);
+  const targetFile = outputFile ?? path.resolve(docsDir, "../nav-tree.json");
+  fs.ensureDirSync(path.dirname(targetFile));
+  fs.writeJsonSync(targetFile, tree, { spaces: 2 });
+  console.log(`[Nav] 已生成导航树: ${targetFile}`);
+  return targetFile;
 }
 
 // 计算目录的内容哈希（用于检测本地文件变更）
@@ -134,10 +196,22 @@ async function syncLocalRepo(repo: DocsRepo): Promise<boolean> {
 
   // 计算当前哈希
   const currentHash = calculateDirHash(localPath);
-  const cachedHash = localHashCache.get(repo.name);
 
-  if (cachedHash === currentHash) {
+  // 获取构建缓存目录
+  const targetDir = path.resolve(__dirname, `../src/docs-temp/${repo.name}`);
+  const hashFile = path.join(targetDir, ".source-hash");
+
+  // 尝试获取上次的哈希（内存缓存 或 文件记录）
+  let lastHash = localHashCache.get(repo.name);
+  if (!lastHash && fs.existsSync(hashFile)) {
+    try {
+      lastHash = fs.readFileSync(hashFile, "utf-8").trim();
+    } catch (e) {}
+  }
+
+  if (lastHash === currentHash) {
     console.log(`[Local] ${repo.name} 无变更`);
+    localHashCache.set(repo.name, currentHash); // 更新内存缓存
     return false;
   }
 
@@ -145,9 +219,12 @@ async function syncLocalRepo(repo: DocsRepo): Promise<boolean> {
   localHashCache.set(repo.name, currentHash);
 
   // 复制本地文件到 docs-temp
-  const targetDir = path.resolve(__dirname, `../src/docs-temp/${repo.name}`);
   fs.ensureDirSync(targetDir);
   fs.emptyDirSync(targetDir);
+
+  // 写入哈希记录
+  fs.writeFileSync(hashFile, currentHash);
+
   fs.copySync(localPath, targetDir, {
     filter: (src) => {
       const basename = path.basename(src);
@@ -195,6 +272,8 @@ function copyDocsToPublic(repo: DocsRepo) {
     });
     console.log(`[Docs] 已复制: ${repo.name} -> ${docsTarget}`);
 
+    generateNavTree(docsTarget);
+
     // 复制 meta.json 到 public 根目录
     const metaPath = path.join(repoDir, "meta.json");
     const rootMetaPath = path.resolve(__dirname, "../public/meta.json");
@@ -224,6 +303,13 @@ async function buildProject(repo: DocsRepo) {
   });
 
   console.log(`[Build] ${repo.name} 构建完成！`);
+
+  const navTreeSrc = path.resolve(__dirname, "../public/nav-tree.json");
+  if (fs.existsSync(navTreeSrc)) {
+    const navTreeDest = path.join(absoluteOutputPath, "nav-tree.json");
+    fs.copySync(navTreeSrc, navTreeDest);
+    console.log(`[Nav] 已同步导航树到输出目录: ${navTreeDest}`);
+  }
 }
 
 // 主同步和构建流程
@@ -308,16 +394,18 @@ async function startMonitor() {
 }
 
 // 检查命令行参数
-const args = process.argv.slice(2);
-if (args.includes("--once") || args.includes("--force")) {
-  // 单次执行模式（支持强制构建）
-  const force = args.includes("--force");
-  console.log(`[Mode] 单次执行模式 ${force ? "(强制构建)" : "(增量构建)"}`);
-  syncAndBuild(force).then(() => {
-    console.log("[Done] 执行完成");
-    process.exit(0);
-  });
-} else {
-  // 监控服务模式
-  startMonitor();
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  const args = process.argv.slice(2);
+  if (args.includes("--once") || args.includes("--force")) {
+    // 单次执行模式（支持强制构建）
+    const force = args.includes("--force");
+    console.log(`[Mode] 单次执行模式 ${force ? "(强制构建)" : "(增量构建)"}`);
+    syncAndBuild(force).then(() => {
+      console.log("[Done] 执行完成");
+      process.exit(0);
+    });
+  } else {
+    // 监控服务模式
+    startMonitor();
+  }
 }

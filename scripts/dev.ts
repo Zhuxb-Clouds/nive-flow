@@ -8,10 +8,11 @@
  *   pnpm dev --name=game-docs  # 指定仓库名称
  */
 
-import { execSync, spawn } from "child_process";
+import { spawn } from "child_process";
 import path from "path";
 import fs from "fs-extra";
 import { fileURLToPath } from "url";
+import { generateNavTree } from "./monitor.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -73,67 +74,6 @@ function isLocalPath(url: string): boolean {
     url.startsWith("~") ||
     /^[a-zA-Z]:[\\/]/.test(url)
   );
-}
-
-// 导航树节点接口
-interface NavTreeNode {
-  name: string;
-  path: string;
-  type: "file" | "folder";
-  children?: NavTreeNode[];
-}
-
-// 生成导航树 JSON
-function generateNavTree(docsDir: string) {
-  function scanDir(dir: string, basePath: string = ""): NavTreeNode[] {
-    const items = fs.readdirSync(dir, { withFileTypes: true });
-    const result: NavTreeNode[] = [];
-
-    // 先处理文件夹，再处理文件
-    const folders = items.filter((item) => item.isDirectory() && !item.name.startsWith("."));
-    const files = items.filter(
-      (item) => item.isFile() && item.name.endsWith(".md") && item.name !== "meta.json"
-    );
-
-    // 文件夹
-    for (const folder of folders.sort((a, b) => a.name.localeCompare(b.name, "zh-CN"))) {
-      const folderPath = path.join(dir, folder.name);
-      const relativePath = basePath ? `${basePath}/${folder.name}` : folder.name;
-      const children = scanDir(folderPath, relativePath);
-
-      if (children.length > 0) {
-        result.push({
-          name: folder.name,
-          path: relativePath,
-          type: "folder",
-          children,
-        });
-      }
-    }
-
-    // 文件
-    for (const file of files.sort((a, b) => {
-      // README 放最前面
-      if (a.name === "README.md") return -1;
-      if (b.name === "README.md") return 1;
-      return a.name.localeCompare(b.name, "zh-CN");
-    })) {
-      const fileName = file.name.replace(/\.md$/, "");
-      const relativePath = basePath ? `${basePath}/${fileName}` : fileName;
-      result.push({
-        name: fileName === "README" ? "概述" : fileName,
-        path: relativePath,
-        type: "file",
-      });
-    }
-
-    return result;
-  }
-
-  const tree = scanDir(docsDir);
-  const outputPath = path.resolve(docsDir, "../nav-tree.json");
-  fs.writeJsonSync(outputPath, tree, { spaces: 2 });
-  console.log(`[Nav] 已生成导航树: ${outputPath}`);
 }
 
 // 复制文档到 public
