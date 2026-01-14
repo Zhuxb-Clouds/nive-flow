@@ -392,20 +392,24 @@ async function startMonitor() {
     syncAndBuild();
   });
 }
-
-// 检查命令行参数
+// 在脚本最后
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   const args = process.argv.slice(2);
   if (args.includes("--once") || args.includes("--force")) {
-    // 单次执行模式（支持强制构建）
     const force = args.includes("--force");
-    console.log(`[Mode] 单次执行模式 ${force ? "(强制构建)" : "(增量构建)"}`);
-    syncAndBuild(force).then(() => {
-      console.log("[Done] 执行完成");
-      process.exit(0);
-    });
+    syncAndBuild(force)
+      .then(() => {
+        process.exit(0);
+      })
+      .catch((err) => {
+        console.error("单次执行失败:", err);
+        process.exit(1);
+      });
   } else {
-    // 监控服务模式
-    startMonitor();
+    // 使用 catch 捕获 startMonitor 内部的致命错误
+    startMonitor().catch((err) => {
+      console.error("服务启动崩溃:", err);
+      process.exit(1);
+    });
   }
 }
