@@ -53,20 +53,31 @@ async function startServer() {
   });
 
   // Webhook 触发构建接口
-  app.all(["/webhook", "/build"], (_req, res) => {
+  app.all(["/webhook", "/build", "/webhook/:name", "/build/:name"], (req, res) => {
     if (isBuilding) {
       res.status(429).json({ success: false, message: "构建正在进行中，请稍后再试" });
       return;
     }
 
-    console.log(`\n[Webhook] ${new Date().toLocaleString()} 收到构建请求`);
+    // 获取 repo name：路径参数 > 查询参数
+    const repoName = req.params.name || (req.query.name as string) || undefined;
+
+    console.log(
+      `\n[Webhook] ${new Date().toLocaleString()} 收到构建请求${
+        repoName ? ` (repo: ${repoName})` : " (全部)"
+      }`
+    );
 
     // 立即返回响应，异步执行构建
-    res.status(202).json({ success: true, message: "构建任务已触发" });
+    res.status(202).json({
+      success: true,
+      message: "构建任务已触发",
+      repo: repoName || "all",
+    });
 
     // 异步执行拉取和强制构建
     isBuilding = true;
-    syncAndBuild(true)
+    syncAndBuild(true, repoName?.toString())
       .then(() => console.log("[Webhook] 构建完成"))
       .catch((err) => console.error("[Webhook] 构建失败:", err))
       .finally(() => {
@@ -81,7 +92,7 @@ async function startServer() {
 
   app.listen(port, () => {
     console.log(`[Server] HTTP 服务已启动，监听端口 ${port}`);
-    console.log(`[Server] 触发构建: POST/GET http://localhost:${port}/webhook`);
+    console.log(`[Server] 触发构建: POST/GET http://localhost:${port}/webhook[/:name]`);
     console.log(`[Server] 健康检查: GET http://localhost:${port}/health`);
   });
 }

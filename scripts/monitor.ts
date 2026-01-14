@@ -312,11 +312,23 @@ async function buildProject(repo: DocsRepo) {
 }
 
 // 主同步和构建流程
-async function syncAndBuild(force = false) {
-  const repos = await parseDocsRepos();
+async function syncAndBuild(force = false, repoName?: string) {
+  let repos = await parseDocsRepos();
   if (repos.length === 0) {
     console.error("[Error] 没有配置有效的文档仓库");
     return;
+  }
+
+  // 如果指定了 repoName，只处理对应的仓库
+  if (repoName) {
+    const targetRepo = repos.find((r) => r.name === repoName);
+    if (!targetRepo) {
+      console.error(`[Error] 未找到名为 "${repoName}" 的文档仓库`);
+      console.log(`[Info] 可用的仓库: ${repos.map((r) => r.name).join(", ")}`);
+      return;
+    }
+    repos = [targetRepo];
+    console.log(`[Filter] 仅构建指定仓库: ${repoName}`);
   }
 
   try {
