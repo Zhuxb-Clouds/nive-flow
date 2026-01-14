@@ -9,7 +9,7 @@
 ## ✨ 特性
 
 - 📝 **零配置** — 放入 Markdown，自动生成精美网站
-- 🔄 **自动同步** — 支持 Git 仓库或本地目录，定时自动更新
+- 🔄 **Webhook 触发** — 支持 Git 仓库或本地目录，通过 HTTP 接口触发构建
 - 🎨 **主题切换** — 深色/浅色模式，一键切换
 - 📐 **LaTeX 公式** — 原生支持数学公式渲染
 - 🌈 **代码高亮** — VS Code 级别的语法高亮 (Shiki)
@@ -64,31 +64,42 @@ module.exports = {
     interpreter: 'node',
     interpreter_args: '--import tsx',
     env: {
-      // Git 仓库模式
-      GIT_REPO_URL: 'https://github.com/your-org/docs.git',
-      
-      // 或本地目录模式
-      // LOCAL_DOCS_PATH: './docs',
-      
-      POLL_INTERVAL: '*/30 * * * *',  // 每30分钟同步
-      OUTPUT_PATH: '/var/www/docs',
+      DOCS_REPOS: [
+        {
+          name: "docs",
+          url: "https://github.com/your-org/docs.git",  // Git 仓库
+          branch: "main",
+          outputPath: "dist/docs"
+        },
+        {
+          name: "notes",
+          url: "/path/to/local/notes",  // 本地目录
+          outputPath: "dist/notes"
+        }
+      ],
+      WEBHOOK_PORT: 3001,  // Webhook 监听端口
       NODE_ENV: 'production'
     }
   }]
 };
 ```
 
-### 多文档源
+## 🔌 Webhook API
 
-```javascript
-env: {
-  DOCS_REPOS: JSON.stringify([
-    { name: "api-docs", url: "https://github.com/org/api-docs" },
-    { name: "guides", url: "~/Documents/guides" },
-    { name: "notes", url: "./local-notes" }
-  ])
-}
+启动服务后，可通过 HTTP 接口触发构建：
+
+```bash
+# 触发构建
+curl http://localhost:3001/webhook
+# 或
+curl -X POST http://localhost:3001/build
+
+# 健康检查
+curl http://localhost:3001/health
+# 返回: {"status":"ok","building":false}
 ```
+
+适合与 Git Hooks、CI/CD 或其他自动化工具集成。
 
 ## 🏗️ 项目结构
 
@@ -107,11 +118,11 @@ nive-flow/
 
 ## 🛠️ 技术栈
 
-| 类别     | 技术                        |
-| -------- | --------------------------- |
-| 前端     | Vue 3 + TypeScript + Vite   |
-| Markdown | markdown-it + Shiki + KaTeX |
-| 部署     | PM2 + simple-git            |
+| 类别     | 技术                          |
+| -------- | ----------------------------- |
+| 前端     | Vue 3 + TypeScript + Vite     |
+| Markdown | markdown-it + Shiki + KaTeX   |
+| 服务     | Express.js + PM2 + simple-git |
 
 ## 📄 License
 
