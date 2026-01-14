@@ -4,7 +4,6 @@ import fs from "fs-extra";
 import crypto from "crypto";
 import simpleGit from "simple-git";
 import { fileURLToPath } from "url";
-import express from "express";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -360,103 +359,14 @@ async function syncAndBuild(force = false) {
   }
 }
 
-// 启动 HTTP 服务器监听 webhook
-async function startMonitor() {
-  const port = parseInt(process.env.WEBHOOK_PORT || "3001", 10);
+// 导出供 server.ts 使用
+export { syncAndBuild, parseDocsRepos, isLocalPath };
 
-  console.log("\n╔═══════════════════════════════════════════════════════════╗");
-  console.log("║             🌊 NiveFlow 文档监控服务已启动                ║");
-  console.log("╚═══════════════════════════════════════════════════════════╝\n");
-
-  const repos = await parseDocsRepos();
-  if (repos.length > 0) {
-    console.log(`[Config] 文档源 (${repos.length} 个):`);
-    repos.forEach((repo, index) => {
-      const type = isLocalPath(repo.url) ? "📁 本地" : "🌐 Git";
-      const branch = isLocalPath(repo.url) ? "" : ` (${repo.branch})`;
-      const output = repo.outputPath || `./dist/${repo.name}`;
-      console.log(`  ${index + 1}. [${type}] ${repo.name}: ${repo.url}${branch}`);
-      console.log(`      📤 输出: ${output}`);
-    });
-  } else {
-    console.log("[Config] 文档源: 未配置");
-  }
-  console.log(`[Config] Webhook 端口: ${port}`);
-  console.log("");
-
-  // 初始构建
-  try {
-    await syncAndBuild();
-  } catch (err) {
-    console.error("[Fatal] 初始构建失败:", err);
-  }
-
-  // 构建锁，防止并发构建
-  let isBuilding = false;
-
-  // 创建 Express 应用
-  const app = express();
-
-  // CORS 中间件
-  app.use((_req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Content-Type");
-    next();
-  });
-
-  // 健康检查接口
-  app.get("/health", (_req, res) => {
-    res.json({ status: "ok", building: isBuilding });
-  });
-
-  // Webhook 触发构建接口
-  app.all(["/webhook", "/build"], (_req, res) => {
-    if (isBuilding) {
-      res.status(429).json({ success: false, message: "构建正在进行中，请稍后再试" });
-      return;
-    }
-
-    console.log(`\n[Webhook] ${new Date().toLocaleString()} 收到构建请求`);
-
-    // 立即返回响应，异步执行构建
-    res.status(202).json({ success: true, message: "构建任务已触发" });
-
-    // 异步执行拉取和强制构建
-    isBuilding = true;
-    syncAndBuild(true)
-      .then(() => console.log("[Webhook] 构建完成"))
-      .catch((err) => console.error("[Webhook] 构建失败:", err))
-      .finally(() => {
-        isBuilding = false;
-      });
-  });
-
-  // 404 处理
-  app.use((_req, res) => {
-    res.status(404).json({ error: "Not Found" });
-  });
-
-  app.listen(port, () => {
-    console.log(`[Server] HTTP 服务已启动，监听端口 ${port}`);
-    console.log(`[Server] 触发构建: POST/GET http://localhost:${port}/webhook`);
-    console.log(`[Server] 健康检查: GET http://localhost:${port}/health`);
-  });
-}
-
-// 3. 核心修正：确保脚本不会直接退出
+// CLI 入口
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   const args = process.argv.slice(2);
-  if (args.includes("--once") || args.includes("--force")) {
-    const force = args.includes("--force");
-    syncAndBuild(force)
-      .then(() => process.exit(0))
-      .catch(() => process.exit(1));
-  } else {
-    // 必须 catch，否则异步报错会变成 unhandledRejection
-    startMonitor().catch((err) => {
-      console.error("服务无法启动:", err);
-      process.exit(1);
-    });
-  }
+  const force = args.includes("--force");
+  syncAndBuild(force)
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
 }
