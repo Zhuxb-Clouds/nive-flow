@@ -75,7 +75,7 @@ onMounted(async () => {
     </main>
 
     <footer class="app-footer">
-      <p>Powered by NiveFlow · Built with 💙</p>
+      <p>Powered by NiveFlow</p>
     </footer>
   </div>
 </template>
