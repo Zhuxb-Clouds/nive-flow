@@ -19,7 +19,7 @@
 
 /* CSS 变量 - 亮色模式 */
 :root {
-  --bg-color: #fafdfe;
+  --bg-color: #fff;
   --color: #3b3935;
   --color-secondary: #666;
   --selection-bg: #4e4e4e;
@@ -68,11 +68,18 @@ html {
 }
 
 body {
-  font-family: "Noto Sans SC", "Mi Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    "Noto Sans SC",
+    "Mi Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   line-height: 1.6;
   background-color: var(--bg-color);
   color: var(--color);
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 a {

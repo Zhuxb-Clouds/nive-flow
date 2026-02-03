@@ -60,7 +60,6 @@ onMounted(async () => {
 .doc-content {
   max-width: 75ch;
   margin: 0 auto;
-  padding: 2rem;
   position: relative;
 }
 
