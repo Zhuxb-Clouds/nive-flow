@@ -50,7 +50,7 @@ export function generateNavTree(docsDir: string, outputFile?: string): string | 
 
     const folders = items.filter((item) => item.isDirectory() && !item.name.startsWith("."));
     const files = items.filter(
-      (item) => item.isFile() && item.name.endsWith(".md") && item.name !== "meta.json"
+      (item) => item.isFile() && item.name.endsWith(".md") && item.name !== "meta.json",
     );
 
     for (const folder of folders.sort((a, b) => a.name.localeCompare(b.name, "zh-CN"))) {
@@ -173,8 +173,9 @@ async function syncGitRepo(repo: DocsRepo): Promise<boolean> {
     console.log(`[Git] ${repo.name} 无变更`);
     return false;
   } catch (error) {
-    console.error(`[Error] ${repo.name} Git 同步失败:`, error);
-    return false;
+    throw new Error(
+      `[Git] ${repo.name} 同步失败: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
 
@@ -189,8 +190,7 @@ async function syncLocalRepo(repo: DocsRepo): Promise<boolean> {
   }
 
   if (!fs.existsSync(localPath)) {
-    console.error(`[Local] ${repo.name} 本地路径不存在: ${localPath}`);
-    return false;
+    throw new Error(`[Local] ${repo.name} 本地路径不存在: ${localPath}`);
   }
 
   // 计算当前哈希
@@ -281,7 +281,7 @@ function copyDocsToPublic(repo: DocsRepo) {
       console.log(`[Meta] 已复制 meta.json 到 public/`);
     }
   } else {
-    console.error(`[Error] 文档源不存在: ${repoDir}`);
+    throw new Error(`[Docs] 文档源不存在: ${repoDir}`);
   }
 }
 
@@ -315,17 +315,18 @@ async function buildProject(repo: DocsRepo) {
 async function syncAndBuild(force = false, repoName?: string) {
   let repos = await parseDocsRepos();
   if (repos.length === 0) {
-    console.error("[Error] 没有配置有效的文档仓库");
-    return;
+    throw new Error("[Config] 没有配置有效的文档仓库");
   }
 
   // 如果指定了 repoName，只处理对应的仓库
   if (repoName) {
     const targetRepo = repos.find((r) => r.name === repoName);
     if (!targetRepo) {
-      console.error(`[Error] 未找到名为 "${repoName}" 的文档仓库`);
-      console.log(`[Info] 可用的仓库: ${repos.map((r) => r.name).join(", ")}`);
-      return;
+      throw new Error(
+        `[Config] 未找到名为 "${repoName}" 的文档仓库。可用仓库: ${repos
+          .map((r) => r.name)
+          .join(", ")}`,
+      );
     }
     repos = [targetRepo];
     console.log(`[Filter] 仅构建指定仓库: ${repoName}`);
@@ -366,8 +367,8 @@ async function syncAndBuild(force = false, repoName?: string) {
       }
     }
   } catch (error) {
-    console.error("[Error] 同步或构建失败:", error);
-    if (force) process.exit(1);
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`[BuildFlow] 同步或构建失败: ${message}`);
   }
 }
 
@@ -380,5 +381,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   const force = args.includes("--force");
   syncAndBuild(force)
     .then(() => process.exit(0))
-    .catch(() => process.exit(1));
+    .catch((error) => {
+      console.error("[Error] 同步或构建失败:", error);
+      process.exit(1);
+    });
 }

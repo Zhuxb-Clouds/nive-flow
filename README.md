@@ -94,12 +94,118 @@ curl http://localhost:3001/webhook
 # 或
 curl -X POST http://localhost:3001/build
 
+# 构建指定仓库（name 为 ecosystem.config.cjs 中配置的仓库名）
+curl -X POST http://localhost:3001/webhook/nive
+curl "http://localhost:3001/build?name=hrsrive"
+
 # 健康检查
 curl http://localhost:3001/health
-# 返回: {"status":"ok","building":false}
+
+# 查询失败日志（默认返回最新 20 条）
+curl http://localhost:3001/failures
+
+# 按仓库过滤
+curl "http://localhost:3001/failures?repo=nive"
+
+# 按触发来源过滤（init 或 webhook）
+curl "http://localhost:3001/failures?trigger=webhook"
+
+# 分页参数
+curl "http://localhost:3001/failures?limit=10&offset=20"
 ```
 
 适合与 Git Hooks、CI/CD 或其他自动化工具集成。
+
+### 接口说明
+
+#### `GET /health`
+
+返回服务状态、当前是否在构建、重试配置以及失败日志摘要。
+
+示例响应：
+
+```json
+{
+  "status": "ok",
+  "building": false,
+  "retry": {
+    "maxAttempts": 3,
+    "delayMs": 3000
+  },
+  "failures": {
+    "count": 2,
+    "logFile": "/path/to/project/logs/build-failures.jsonl"
+  }
+}
+```
+
+#### `POST|GET /webhook[/:name]` / `POST|GET /build[/:name]`
+
+- 功能：触发异步同步+构建任务
+- 返回码：
+  - `202` 已受理（后台执行）
+  - `429` 当前已有构建任务在执行
+- 仓库指定方式：
+  - 路径参数：`/webhook/:name`
+  - 查询参数：`/build?name=xxx`
+
+示例响应（`202`）：
+
+```json
+{
+  "success": true,
+  "message": "构建任务已触发",
+  "repo": "nive",
+  "retry": {
+    "maxAttempts": 3,
+    "delayMs": 3000
+  }
+}
+```
+
+#### `GET /failures`
+
+- 功能：查询构建失败日志（内存缓存 + 持久化文件）
+- 查询参数：
+  - `repo`（可选）：按仓库名过滤
+  - `trigger`（可选）：`init` / `webhook`
+  - `limit`（可选）：返回条数，默认 `20`
+  - `offset`（可选）：偏移量，默认 `0`
+
+示例响应：
+
+```json
+{
+  "success": true,
+  "total": 3,
+  "offset": 0,
+  "limit": 20,
+  "count": 3,
+  "logs": [
+    {
+      "id": "f188be1d-7a21-4a17-b3cd-5d8f35ff2f2e",
+      "timestamp": "2026-03-08T08:00:00.000Z",
+      "trigger": "webhook",
+      "repo": "nive",
+      "attempt": 2,
+      "maxAttempts": 3,
+      "error": "[BuildFlow] 同步或构建失败: ...",
+      "method": "POST",
+      "endpoint": "/webhook/nive",
+      "retryInMs": 3000
+    }
+  ]
+}
+```
+
+### 重试与日志配置
+
+可通过环境变量配置：
+
+- `BUILD_RETRY_ATTEMPTS`：最大重试次数（默认 `3`，包含首次执行）
+- `BUILD_RETRY_DELAY_MS`：重试间隔毫秒（默认 `3000`）
+- `FAILURE_LOG_LIMIT`：内存中保留的失败日志条数（默认 `200`）
+- `FAILURE_LOG_FILE`：失败日志持久化文件路径（默认 `logs/build-failures.jsonl`）
 
 ## 🏗️ 项目结构
 

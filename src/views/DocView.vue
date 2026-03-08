@@ -7,7 +7,7 @@ import GlobalNav from "@/components/GlobalNav.vue";
 import TableOfContents from "@/components/TableOfContents.vue";
 import { showNav, showToc } from "@/stores/sidebar";
 
-const props = defineProps<{
+defineProps<{
   meta: MetaConfig;
 }>();
 
@@ -54,7 +54,7 @@ watch(
     if (newPath) {
       loadDocument(newPath as string);
     }
-  }
+  },
 );
 </script>
 

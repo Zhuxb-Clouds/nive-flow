@@ -1,6 +1,6 @@
 {
   "name": "nive-flow",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "NiveFlow 全栈自动化文档发布引擎",
   "type": "module",
   "bin": {
@@ -36,7 +36,7 @@
     "@types/node-cron": "^3.0.11",
     "@vitejs/plugin-vue": "^5.0.0",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.0",
+    "typescript": "~5.4.5",
     "vite": "^5.0.0",
     "vue-tsc": "^1.8.0"
   },
