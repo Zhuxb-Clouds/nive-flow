@@ -13,6 +13,7 @@ const props = defineProps<{
 
 const tocItems = ref<TocItem[]>([]);
 const activeId = ref("");
+const showBackToTop = ref(false);
 
 // 从 HTML 内容中提取标题
 function extractHeadings(html: string): TocItem[] {
@@ -57,9 +58,18 @@ function scrollToHeading(id: string) {
   }
 }
 
+function scrollToTop() {
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+}
+
 // 监听滚动，高亮当前章节
 function handleScroll() {
   const headings = tocItems.value;
+  showBackToTop.value = window.scrollY > 360;
+
   if (headings.length === 0) return;
 
   const scrollTop = window.scrollY + 100;
@@ -100,7 +110,7 @@ watch(
       }, 100);
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 onMounted(() => {
@@ -120,23 +130,33 @@ onUnmounted(() => {
         v-for="item in tocItems"
         :key="item.id"
         :class="['toc-item', `level-${item.level}`, { active: activeId === item.id }]"
+        :style="{ '--toc-indent': `${Math.min(Math.max(item.level - 1, 0), 2) * 0.7}rem` }"
         @click="scrollToHeading(item.id)"
       >
-        {{ item.text }}
+        <span class="toc-text">{{ item.text }}</span>
       </li>
     </ul>
+    <button v-if="showBackToTop" class="back-to-top" type="button" @click="scrollToTop">
+      回到顶部
+    </button>
   </aside>
 </template>
 
 <style scoped>
 .toc {
-  width: 180px;
-  position: absolute;
-  left: 100%;
-  top: 0;
-  margin-left: 1rem;
+  width: 100%;
+  min-width: 0;
+  position: sticky;
+  top: 92px;
   padding: 1rem;
-  background: transparent;
+  background: color-mix(in srgb, var(--bg-color) 92%, transparent);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -28px var(--shadow-color);
+  backdrop-filter: blur(10px);
+  z-index: 20;
+  max-height: calc(100vh - 108px);
+  overflow-y: auto;
 }
 
 .toc-header {
@@ -155,7 +175,11 @@ onUnmounted(() => {
 }
 
 .toc-item {
-  padding: 0.3rem 0.5rem;
+  display: grid;
+  grid-template-columns: var(--toc-indent, 0rem) minmax(0, 1fr);
+  align-items: start;
+  column-gap: 0.45rem;
+  padding: 0.35rem 0.5rem;
   font-size: 0.8rem;
   color: var(--color-secondary);
   cursor: pointer;
@@ -163,6 +187,13 @@ onUnmounted(() => {
   transition: all 0.2s;
   border-left: 2px solid transparent;
   margin-bottom: 0.1rem;
+}
+
+.toc-text {
+  grid-column: 2;
+  min-width: 0;
+  line-height: 1.45;
+  overflow-wrap: break-word;
 }
 
 .toc-item:hover {
@@ -183,24 +214,63 @@ onUnmounted(() => {
   font-size: 0.85rem;
 }
 
-.toc-item.level-2 {
-  padding-left: 0.75rem;
-}
-
 .toc-item.level-3 {
-  padding-left: 1.25rem;
   font-size: 0.75rem;
 }
 
 .toc-item.level-4 {
-  padding-left: 1.75rem;
   font-size: 0.75rem;
 }
 
-/* 响应式隐藏 */
+.back-to-top {
+  width: 100%;
+  margin-top: 0.85rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-color);
+  color: var(--color);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.back-to-top:hover {
+  background: var(--hover-bg);
+  border-color: color-mix(in srgb, var(--primary-color) 32%, var(--border-color));
+}
+
+.back-to-top:active {
+  transform: translateY(1px);
+}
+
 @media (max-width: 1200px) {
   .toc {
-    display: none;
+    position: fixed;
+    top: 78px;
+    right: 0.75rem;
+    left: auto;
+    width: min(82vw, 360px);
+    min-width: 0;
+    max-height: calc(100vh - 94px);
+    background: color-mix(in srgb, var(--bg-color) 97%, transparent);
+    box-shadow: 0 24px 48px -28px var(--shadow-color);
+  }
+}
+
+@media (max-width: 640px) {
+  .toc {
+    top: 74px;
+    right: 0.5rem;
+    width: calc(100vw - 1rem);
+    border-radius: 12px;
+  }
+
+  .toc-item {
+    padding: 0.45rem 0.5rem;
   }
 }
 </style>

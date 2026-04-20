@@ -60,25 +60,29 @@ watch(
 
 <template>
   <div class="doc-layout">
-    <div class="doc-content">
-      <GlobalNav v-if="showNav" />
+    <div class="doc-shell" :class="{ 'has-nav': showNav, 'has-toc': showToc }">
+      <div class="doc-main">
+        <div class="doc-content">
+          <GlobalNav v-if="showNav" />
 
-      <div class="content-area">
-        <div v-if="loading" class="loading">
-          <div class="spinner"></div>
-          <p>正在加载文档...</p>
+          <div class="content-area">
+            <div v-if="loading" class="loading">
+              <div class="spinner"></div>
+              <p>正在加载文档...</p>
+            </div>
+
+            <div v-else-if="error" class="error">
+              <h2>😕 文档未找到</h2>
+              <p>{{ error }}</p>
+              <router-link to="/" class="back-link">← 返回首页</router-link>
+            </div>
+
+            <article v-else class="markdown-body" v-html="content"></article>
+          </div>
         </div>
 
-        <div v-else-if="error" class="error">
-          <h2>😕 文档未找到</h2>
-          <p>{{ error }}</p>
-          <router-link to="/" class="back-link">← 返回首页</router-link>
-        </div>
-
-        <article v-else class="markdown-body" v-html="content"></article>
+        <TableOfContents v-if="showToc" :content="content" />
       </div>
-
-      <TableOfContents v-if="showToc" :content="content" />
     </div>
   </div>
 </template>
@@ -88,10 +92,45 @@ watch(
   min-height: calc(100vh - 70px);
 }
 
-.doc-content {
+.doc-shell {
   max-width: 75ch;
   margin: 0 auto;
   padding: 2rem;
+  --nav-reserved-width: 0px;
+  --toc-column-width: 0px;
+}
+
+.doc-shell.has-nav {
+  --nav-reserved-width: 316px;
+}
+
+.doc-shell.has-toc {
+  --toc-column-width: calc(320px + 1.5rem);
+}
+
+.doc-shell.has-nav,
+.doc-shell.has-toc,
+.doc-shell.has-nav.has-toc {
+  max-width: calc(75ch + var(--nav-reserved-width) + var(--toc-column-width));
+}
+
+.doc-shell.has-nav .doc-main {
+  padding-left: var(--nav-reserved-width);
+}
+
+.doc-main {
+  position: relative;
+}
+
+.doc-shell.has-toc .doc-main {
+  display: grid;
+  grid-template-columns: minmax(0, 75ch) minmax(220px, 320px);
+  column-gap: 1.5rem;
+  align-items: start;
+}
+
+.doc-content {
+  max-width: 75ch;
   position: relative;
 }
 
@@ -164,10 +203,23 @@ watch(
   text-decoration: underline;
 }
 
-/* 响应式 */
 @media (max-width: 900px) {
-  .doc-content {
+  .doc-shell {
     padding: 1rem;
+    --nav-reserved-width: 0px;
+    --toc-column-width: 0px;
+  }
+
+  .doc-shell.has-nav,
+  .doc-shell.has-toc,
+  .doc-shell.has-nav.has-toc {
+    max-width: 75ch;
+  }
+
+  .doc-shell.has-nav .doc-main,
+  .doc-shell.has-toc .doc-main {
+    padding-left: 0;
+    display: block;
   }
 }
 </style>
